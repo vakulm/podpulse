@@ -21,6 +21,7 @@ from src.tools.memory_tools import (
     add_newsletter_subscriber,
     initialize_memory_database,
     query_prediction_ledger,
+    remove_newsletter_subscriber,
 )
 
 try:
@@ -228,25 +229,34 @@ def render_dashboard_html(
                 </div>
             </div>
 
-            <!-- Prominent Top Subscribe Bar -->
-            <form action="/subscribe" method="post" class="bg-slate-900 border border-slate-700 rounded-lg p-3.5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            <!-- Prominent Top Subscribe & Unsubscribe Bar -->
+            <div class="bg-slate-900 border border-slate-700 rounded-lg p-3.5 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
                 <div class="text-xs text-slate-300">
-                    <strong class="text-white">📬 Subscribe to Weekly 1-Page Briefings:</strong>
-                    Receive every episode's plain-text summary & fact-check scorecard automatically.
+                    <strong class="text-white">📬 Subscribe / Manage Weekly 1-Page Briefings:</strong>
+                    Includes instant confirmation email &amp; 1-click unsubscribe at any time.
                 </div>
-                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                    <input type="email" name="email" placeholder="colleague@google.com" required
-                        class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white sm:w-52">
-                    <select name="focus_area" class="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
-                        <option value="Enterprise AI & Cloud Leader">Role: AI & Cloud Leader</option>
-                        <option value="Tech & Macro Investor">Role: Tech & Macro Investor</option>
-                        <option value="B2B SaaS Founder / Executive">Role: SaaS Founder / Exec</option>
-                    </select>
-                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-1.5 px-4 rounded-lg text-xs transition whitespace-nowrap">
-                        Subscribe
-                    </button>
+                <div class="flex flex-wrap items-center gap-2">
+                    <form action="/subscribe" method="post" class="flex flex-wrap items-center gap-2">
+                        <input type="email" name="email" placeholder="colleague@google.com" required
+                            class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white sm:w-48">
+                        <select name="focus_area" class="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+                            <option value="Enterprise AI & Cloud Leader">Role: AI &amp; Cloud Leader</option>
+                            <option value="Tech & Macro Investor">Role: Tech &amp; Macro Investor</option>
+                            <option value="B2B SaaS Founder / Executive">Role: SaaS Founder / Exec</option>
+                        </select>
+                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-1.5 px-4 rounded-lg text-xs transition whitespace-nowrap">
+                            Subscribe
+                        </button>
+                    </form>
+                    <form action="/unsubscribe" method="post" class="flex items-center gap-1.5 border-l border-slate-700 pl-2">
+                        <input type="email" name="email" placeholder="email to unsubscribe" required
+                            class="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white w-40">
+                        <button type="submit" class="bg-rose-600/80 hover:bg-rose-600 text-white font-semibold py-1.5 px-3 rounded-lg text-xs transition whitespace-nowrap">
+                            Unsubscribe
+                        </button>
+                    </form>
                 </div>
-            </form>
+            </div>
         </header>
 
         {banner_html}
@@ -348,6 +358,34 @@ if FASTAPI_AVAILABLE:
             )
         )
 
+    @app.post("/unsubscribe", response_class=HTMLResponse)
+    async def handle_web_unsubscribe(email: str = Form(...)) -> Any:
+        res = remove_newsletter_subscriber(email)
+        episodes = fetch_archived_episodes()
+        ledger = query_prediction_ledger(LedgerQueryInput(limit=15))
+        preds = [p.model_dump() for p in ledger.predictions]
+        sub_count = fetch_subscriber_count()
+        msg = res.message if res.success else f"Error: {res.error_message}"
+        return HTMLResponse(
+            content=render_dashboard_html(
+                episodes, preds, sub_count, banner_message=msg
+            )
+        )
+
+    @app.get("/unsubscribe", response_class=HTMLResponse)
+    async def handle_one_click_unsubscribe(email: str = "") -> Any:
+        res = remove_newsletter_subscriber(email)
+        episodes = fetch_archived_episodes()
+        ledger = query_prediction_ledger(LedgerQueryInput(limit=15))
+        preds = [p.model_dump() for p in ledger.predictions]
+        sub_count = fetch_subscriber_count()
+        msg = res.message if res.success else f"Error: {res.error_message}"
+        return HTMLResponse(
+            content=render_dashboard_html(
+                episodes, preds, sub_count, banner_message=msg
+            )
+        )
+
     @app.post("/analyze", response_class=HTMLResponse)
     async def handle_web_analyze(
         video_url: str = Form(...),
@@ -410,6 +448,15 @@ class LocalDashboardHandler(BaseHTTPRequestHandler):
                     banner_message=f"Episode '{ep_id}' not found.",
                 )
             )
+        elif parsed.path == "/unsubscribe":
+            qs = parse_qs(parsed.query)
+            email = qs.get("email", [""])[0]
+            res = remove_newsletter_subscriber(email)
+            sub_count = fetch_subscriber_count()
+            msg = res.message if res.success else str(res.error_message)
+            body = render_dashboard_html(
+                episodes, preds, sub_count, banner_message=msg
+            )
         else:
             body = render_dashboard_html(episodes, preds, sub_count)
 
@@ -430,6 +477,10 @@ class LocalDashboardHandler(BaseHTTPRequestHandler):
             res = add_newsletter_subscriber(
                 SubscriberInput(email=email, focus_area=focus)
             )
+            banner = res.message if res.success else str(res.error_message)
+        elif self.path == "/unsubscribe":
+            email = form.get("email", [""])[0]
+            res = remove_newsletter_subscriber(email)
             banner = res.message if res.success else str(res.error_message)
         elif self.path == "/analyze":
             url = form.get("video_url", ["sample://all-in-ep-200"])[0]

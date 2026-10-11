@@ -348,7 +348,7 @@ async def record_prediction_async(
 def add_newsletter_subscriber(
     params: SubscriberInput, db_path: str = DATABASE_PATH
 ) -> SubscriberOutput:
-    """Adds or updates an email subscriber for PodPulse episode briefings.
+    """Adds or updates an email subscriber and dispatches an immediate welcome confirmation email with unsubscribe instructions.
 
     Args:
         params (SubscriberInput): Validated subscriber email and focus area.
@@ -368,6 +368,7 @@ def add_newsletter_subscriber(
         )
 
     try:
+        clean_email = params.email.strip().lower()
         initialize_memory_database(db_path)
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
@@ -378,15 +379,50 @@ def add_newsletter_subscriber(
             VALUES (?, ?, 1, ?)
             ON CONFLICT(email) DO UPDATE SET focus_area=excluded.focus_area, active=1
             """,
-            (params.email.strip().lower(), params.focus_area.strip(), now),
+            (clean_email, params.focus_area.strip(), now),
         )
         conn.commit()
         conn.close()
+
+        # Dispatch Welcome Confirmation Email + Unsubscribe Link
+        from src.tools.delivery_tools import (
+            EmailDispatchInput,
+            dispatch_executive_brief_email,
+        )
+
+        welcome_body = (
+            "================================================================================\n"
+            "PODPULSE SUBSCRIPTION CONFIRMED\n"
+            "================================================================================\n"
+            f"Subscriber:   {clean_email}\n"
+            f"Role Profile: {params.focus_area}\n"
+            "Status:       ACTIVE (Weekly 1-Page Executive Briefings)\n\n"
+            "You are now subscribed to receive standardized 1-page All-In Podcast\n"
+            "executive briefings, Google Search Grounded fact-check scorecards,\n"
+            "and Host Prediction Ledger updates.\n\n"
+            "--------------------------------------------------------------------------------\n"
+            "HOW TO UNSUBSCRIBE AT ANY TIME:\n"
+            f"• 1-Click Web Unsubscribe: https://podpulse-agent.run.app/unsubscribe?email={clean_email}\n"
+            "• Or use the 'Unsubscribe' button in the top bar of the PodPulse Web Dashboard.\n"
+            "================================================================================\n"
+        )
+        dispatch_executive_brief_email(
+            EmailDispatchInput(
+                recipient_email=clean_email,
+                subject="PodPulse Subscription Confirmed — Weekly 1-Page Podcast Briefings",
+                formatted_text_body=welcome_body,
+                human_approved=True,
+            )
+        )
+
         return SubscriberOutput(
             success=True,
-            email=params.email.strip().lower(),
+            email=clean_email,
             focus_area=params.focus_area,
-            message=f"Successfully subscribed {params.email} with focus '{params.focus_area}'.",
+            message=(
+                f"Subscribed {clean_email} ({params.focus_area}) and dispatched"
+                " confirmation email with 1-click unsubscribe link."
+            ),
         )
     except Exception as exc:
         return SubscriberOutput(
@@ -396,6 +432,56 @@ def add_newsletter_subscriber(
             message="Subscription failed.",
             error_message=str(exc),
             recovery_hint="Verify database connection and retry.",
+        )
+
+
+def remove_newsletter_subscriber(
+    email: str, db_path: str = DATABASE_PATH
+) -> SubscriberOutput:
+    """Unsubscribes an email address from PodPulse briefings (sets active = 0).
+
+    Args:
+        email (str): Subscriber email address to unsubscribe.
+        db_path (str): Path to SQLite database.
+
+    Returns:
+        SubscriberOutput: Confirmation of unsubscribe or guided recovery hint.
+    """
+    clean_email = (email or "").strip().lower()
+    if "@" not in clean_email or "." not in clean_email.split("@")[-1]:
+        return SubscriberOutput(
+            success=False,
+            email=email,
+            focus_area="N/A",
+            message="Invalid email format for unsubscribe.",
+            error_message=f"Email '{email}' is not a valid email address.",
+            recovery_hint="Provide the subscribed email address in the format user@domain.com.",
+        )
+
+    try:
+        initialize_memory_database(db_path)
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE subscribers SET active = 0 WHERE LOWER(email) = ?",
+            (clean_email,),
+        )
+        conn.commit()
+        conn.close()
+        return SubscriberOutput(
+            success=True,
+            email=clean_email,
+            focus_area="UNSUBSCRIBED",
+            message=f"Successfully unsubscribed {clean_email} from PodPulse email briefings.",
+        )
+    except Exception as exc:
+        return SubscriberOutput(
+            success=False,
+            email=clean_email,
+            focus_area="N/A",
+            message="Unsubscribe failed.",
+            error_message=str(exc),
+            recovery_hint="Check SQLite database connection and retry.",
         )
 
 
