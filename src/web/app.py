@@ -184,23 +184,35 @@ def render_dashboard_html(
         text = html.escape(str(p.get("prediction_text", "")))
         horizon = html.escape(str(p.get("target_horizon", "")))
         ep_id = html.escape(str(p.get("episode_id", "")))
-        status = html.escape(str(p.get("status", "PENDING")))
-        badge_color = (
-            "bg-emerald-600/30 text-emerald-300 border-emerald-500"
-            if "TRUE" in status
-            else "bg-amber-600/30 text-amber-300 border-amber-500"
+        raw_status = str(p.get("status", "PENDING")).upper()
+        res_note = html.escape(
+            str(
+                p.get("resolution_note")
+                or "Awaiting target horizon for empirical verification."
+            )
         )
+        if "TRUE" in raw_status:
+            status_label = "&#10003; Came True"
+            badge_color = "bg-emerald-600/30 text-emerald-300 border-emerald-500"
+        elif "FALSE" in raw_status:
+            status_label = "&#10007; Proven False"
+            badge_color = "bg-rose-600/30 text-rose-300 border-rose-500"
+        else:
+            status_label = "&#9203; Pending"
+            badge_color = "bg-amber-600/30 text-amber-300 border-amber-500"
+
         pred_rows.append(f"""
-        <tr class="border-b border-slate-800">
-            <td class="py-3 px-4 font-semibold text-white">{speaker}</td>
-            <td class="py-3 px-4 text-slate-300">{text}</td>
-            <td class="py-3 px-4 text-slate-400 text-sm">{horizon}</td>
-            <td class="py-3 px-4 text-slate-400 text-sm">
+        <tr class="border-b border-slate-800 align-top">
+            <td class="py-3 px-4 font-semibold text-white whitespace-nowrap">{speaker}</td>
+            <td class="py-3 px-4 text-slate-200 text-sm">{text}</td>
+            <td class="py-3 px-4 text-slate-400 text-xs whitespace-nowrap">{horizon}</td>
+            <td class="py-3 px-4 text-slate-400 text-xs whitespace-nowrap">
                 <a href="/episodes/{ep_id}" target="_blank" rel="noopener noreferrer" class="text-blue-400 underline">{ep_id} &#8599;</a>
             </td>
-            <td class="py-3 px-4">
-                <span class="text-xs px-2.5 py-1 rounded-full border {badge_color}">{status}</span>
+            <td class="py-3 px-4 whitespace-nowrap">
+                <span class="text-xs font-semibold px-2.5 py-1 rounded-full border {badge_color}">{status_label}</span>
             </td>
+            <td class="py-3 px-4 text-slate-300 text-xs">{res_note}</td>
         </tr>
         """)
 
@@ -297,6 +309,7 @@ def render_dashboard_html(
                             <th class="py-3 px-4">Target Horizon</th>
                             <th class="py-3 px-4">Episode</th>
                             <th class="py-3 px-4">Status</th>
+                            <th class="py-3 px-4">What Actually Happened / Verification</th>
                         </tr>
                     </thead>
                     <tbody>

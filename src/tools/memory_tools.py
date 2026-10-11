@@ -41,6 +41,10 @@ class PredictionEntry(BaseModel):
         default="PENDING",
         description="Current status: PENDING, RESOLVED_TRUE, RESOLVED_FALSE, or STANCE_SHIFTED.",
     )
+    resolution_note: Optional[str] = Field(
+        default="Awaiting target horizon for empirical verification.",
+        description="Evidence or outcome note explaining how/when the prediction was verified or what date it awaits.",
+    )
     created_at: Optional[str] = Field(
         default=None, description="ISO timestamp when recorded."
     )
@@ -113,9 +117,16 @@ def initialize_memory_database(db_path: str = DATABASE_PATH) -> None:
             target_horizon TEXT NOT NULL,
             episode_id TEXT NOT NULL,
             status TEXT DEFAULT 'PENDING',
+            resolution_note TEXT DEFAULT 'Awaiting target horizon for empirical verification.',
             created_at TEXT NOT NULL
         )
     """)
+    try:
+        cursor.execute(
+            "ALTER TABLE predictions ADD COLUMN resolution_note TEXT DEFAULT 'Awaiting target horizon for empirical verification.'"
+        )
+    except sqlite3.OperationalError:
+        pass
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS episodes (
@@ -169,7 +180,7 @@ def initialize_memory_database(db_path: str = DATABASE_PATH) -> None:
             ]
             cursor.execute(
                 """
-                INSERT OR IGNORE INTO episodes
+                INSERT OR REPLACE INTO episodes
                 (episode_id, title, video_url, summary_text, formatted_brief, fact_checks_json, debates_json, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
@@ -185,15 +196,15 @@ def initialize_memory_database(db_path: str = DATABASE_PATH) -> None:
                 ),
             )
 
-    cursor.execute("SELECT COUNT(*) FROM predictions")
-    if cursor.fetchone()[0] < len(THREE_MONTH_EPISODE_ARCHIVE):
+    cursor.execute("SELECT COUNT(*) FROM predictions WHERE resolution_note IS NOT NULL AND resolution_note != 'Awaiting target horizon for empirical verification.'")
+    if cursor.fetchone()[0] < 5:
         cursor.execute("DELETE FROM predictions")
         for ep in THREE_MONTH_EPISODE_ARCHIVE:
             cursor.execute(
                 """
                 INSERT INTO predictions
-                (speaker_name, prediction_text, target_horizon, episode_id, status, created_at)
-                VALUES (?, ?, ?, ?, ?, ?)
+                (speaker_name, prediction_text, target_horizon, episode_id, status, resolution_note, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     ep["prediction_speaker"],
@@ -201,6 +212,7 @@ def initialize_memory_database(db_path: str = DATABASE_PATH) -> None:
                     ep["prediction_horizon"],
                     ep["episode_id"],
                     ep["prediction_status"],
+                    ep.get("prediction_resolution_note", "Awaiting target horizon for empirical verification."),
                     f"{ep['air_date']}T16:00:00+00:00",
                 ),
             )
@@ -258,6 +270,7 @@ def query_prediction_ledger(
                 target_horizon=row["target_horizon"],
                 episode_id=row["episode_id"],
                 status=row["status"],
+                resolution_note=row["resolution_note"] if "resolution_note" in row.keys() else "",
                 created_at=row["created_at"],
             )
             for row in rows

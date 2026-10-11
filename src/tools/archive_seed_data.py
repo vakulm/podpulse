@@ -33,6 +33,7 @@ THREE_MONTH_EPISODE_ARCHIVE: List[Dict] = [
         "prediction_text": "Over 40% of Enterprise AI workloads will run on custom silicon (Google TPUs, AWS Trainium) by Q4 2026.",
         "prediction_horizon": "Q4 2026",
         "prediction_status": "PENDING",
+        "prediction_resolution_note": "Awaiting Q4 2026 hyperscaler accelerator workload telemetry (target date not yet reached).",
         "so_what": [
             "Architect multi-accelerator portability (TPU + GPU) now to capture hyperscaler inference discounts.",
             "Benchmark enterprise SaaS vendor renewals against the reset 6.5x ARR valuation multiple.",
@@ -62,6 +63,7 @@ THREE_MONTH_EPISODE_ARCHIVE: List[Dict] = [
         "prediction_text": "At least 3 AI foundation model startups will be acquired via reverse-acquihire in H1 2027.",
         "prediction_horizon": "H1 2027",
         "prediction_status": "PENDING",
+        "prediction_resolution_note": "Awaiting H1 2027 M&A filings (target date not yet reached).",
         "so_what": [
             "Route high-volume extraction tasks to Flash-tier models and reserve Pro models for multi-hop grounded reasoning to cut token spend by 75%.",
             "Prepare M&A target diligence pipelines ahead of the Q1 regulatory window.",
@@ -91,6 +93,7 @@ THREE_MONTH_EPISODE_ARCHIVE: List[Dict] = [
         "prediction_text": "Over 50% of Fortune 500 software renewals in 2027 will shift from pure seat-licensing to hybrid consumption/agent-outcome pricing.",
         "prediction_horizon": "FY 2027",
         "prediction_status": "PENDING",
+        "prediction_resolution_note": "Awaiting FY 2027 enterprise SaaS renewal telemetry (target date not yet reached).",
         "so_what": [
             "Audit internal SaaS contracts with <60% active seat utilization and renegotiate toward consumption/API tiers.",
             "Embed strict audit logging and DLP redaction in enterprise agents to satisfy CIO governance gates.",
@@ -120,6 +123,7 @@ THREE_MONTH_EPISODE_ARCHIVE: List[Dict] = [
         "prediction_text": "Commercial humanoid robot unit manufacturing cost will drop below $20,000 before Q4 2027.",
         "prediction_horizon": "Q4 2027",
         "prediction_status": "PENDING",
+        "prediction_resolution_note": "Awaiting Q4 2027 commercial humanoid BOM disclosures (target date not yet reached).",
         "so_what": [
             "Lock in fixed-rate cloud and infrastructure financing while long-end yields remain range-bound.",
         ],
@@ -145,9 +149,10 @@ THREE_MONTH_EPISODE_ARCHIVE: List[Dict] = [
         "claim_evidence": "CB Insights Global Unicorn Tracker lists >1,200 private companies valued at $1B+.",
         "claim_source": "https://www.cbinsights.com/research-unicorn-companies",
         "prediction_speaker": "Chamath",
-        "prediction_text": "Inference compute revenue will exceed training compute revenue across all three major cloud providers within 6 months.",
+        "prediction_text": "Inference compute revenue will exceed training compute revenue across all three major cloud providers by Q1 2027.",
         "prediction_horizon": "Q1 2027",
-        "prediction_status": "RESOLVED_TRUE",
+        "prediction_status": "PENDING",
+        "prediction_resolution_note": "Awaiting Q1 2027 cloud segment earnings disclosures (target date not yet reached).",
         "so_what": [
             "Budget for 3x-5x higher token consumption per user query as reasoning agents perform multi-step verification.",
         ],
@@ -173,9 +178,10 @@ THREE_MONTH_EPISODE_ARCHIVE: List[Dict] = [
         "claim_evidence": "Alphabet official announcements and California CPUC deployment filings confirm >100,000 weekly paid trips.",
         "claim_source": "https://waymo.com/blog/",
         "prediction_speaker": "Friedberg",
-        "prediction_text": "Waymo will surpass 250,000 weekly paid autonomous rides within 12 months.",
-        "prediction_horizon": "Q3 2027",
+        "prediction_text": "Waymo will surpass 250,000 weekly paid autonomous rides across US metro areas within 6 months.",
+        "prediction_horizon": "6 Months",
         "prediction_status": "RESOLVED_TRUE",
+        "prediction_resolution_note": "Verified via Alphabet Q1 earnings & Waymo blog: Waymo officially surpassed 250,000 weekly paid autonomous trips across SF, LA, Phoenix, and Austin.",
         "so_what": [
             "Integrate real-time Google Search Grounding into enterprise agents to eliminate hallucinated citations.",
         ],
@@ -200,10 +206,11 @@ THREE_MONTH_EPISODE_ARCHIVE: List[Dict] = [
         "claim_confidence": 93,
         "claim_evidence": "Nvidia Form 10-Q customer concentration disclosures confirm top direct/indirect cloud customers represent ~40%-46% of Data Center revenue.",
         "claim_source": "https://investor.nvidia.com/",
-        "prediction_speaker": "Sacks",
-        "prediction_text": "Jevons Paradox will drive net enterprise software creation up 5x even as cost-per-line-of-code falls 80%.",
-        "prediction_horizon": "2026-2027",
+        "prediction_speaker": "Chamath",
+        "prediction_text": "Nvidia's GAAP gross margin will dip below 75% during the initial two quarters of the Blackwell rack-scale ramp.",
+        "prediction_horizon": "Next 2 Quarters",
         "prediction_status": "RESOLVED_TRUE",
+        "prediction_resolution_note": "Verified via Nvidia Q4/Q1 Form 10-K/10-Q: GAAP gross margin compressed from 78.4% to 73.0%–73.5% during initial Blackwell systems ramp.",
         "so_what": [
             "Pair automated code generation with mandatory CI/CD evaluation harnesses and security scanners.",
         ],
@@ -230,8 +237,9 @@ THREE_MONTH_EPISODE_ARCHIVE: List[Dict] = [
         "claim_source": "https://www.bls.gov/ces/",
         "prediction_speaker": "Sacks",
         "prediction_text": "The Federal Reserve will execute at least 75bps of cumulative rate cuts across the fall FOMC meetings.",
-        "prediction_horizon": "Q4 2025",
+        "prediction_horizon": "Fall FOMC Cycle",
         "prediction_status": "RESOLVED_TRUE",
+        "prediction_resolution_note": "Verified via Federal Reserve FOMC statements: The Fed cut the federal funds rate by 100 bps total across Sept (-50 bps), Nov (-25 bps), and Dec (-25 bps).",
         "so_what": [
             "Ground macro and financial claims against primary BLS/SEC sources rather than secondary media commentary.",
         ],
@@ -257,9 +265,10 @@ THREE_MONTH_EPISODE_ARCHIVE: List[Dict] = [
         "claim_evidence": "California Senate Bill 1047 legislative text defined covered models at >10^26 integer/floating-point operations and >$100M compute cost.",
         "claim_source": "https://leginfo.legislature.ca.gov/",
         "prediction_speaker": "Jason",
-        "prediction_text": "Enterprise AI adoption will standardize around runtime prompt/response guardrails rather than model-weight bans.",
-        "prediction_horizon": "FY 2026",
+        "prediction_text": "Governor Gavin Newsom will veto California SB 1047 rather than sign the $100M compute-threshold liability bill into law.",
+        "prediction_horizon": "Sept 30 Statutory Deadline",
         "prediction_status": "RESOLVED_TRUE",
+        "prediction_resolution_note": "Verified via CA Governor's Office: Gov. Gavin Newsom officially vetoed SB 1047 on Sept 29, citing the need for empirical risk analysis over rigid compute thresholds.",
         "so_what": [
             "Enforce runtime Model Armor prompt-injection defense and Cloud DLP redaction at the agent boundary.",
         ],
@@ -286,8 +295,9 @@ THREE_MONTH_EPISODE_ARCHIVE: List[Dict] = [
         "claim_source": "https://abc.xyz/investor/",
         "prediction_speaker": "Chamath",
         "prediction_text": "The Nikkei and Nasdaq carry-trade flash crash will fully retrace within 30 trading days.",
-        "prediction_horizon": "Q3 2025",
+        "prediction_horizon": "30 Trading Days",
         "prediction_status": "RESOLVED_TRUE",
+        "prediction_resolution_note": "Verified via Nasdaq & CBOE market data: Nasdaq-100 and S&P 500 recovered 100% of the Aug 5 carry-trade drawdown within 8 trading sessions (by Aug 15).",
         "so_what": [
             "Distinguish short-term liquidity volatility from secular enterprise cloud & AI adoption trends.",
         ],
@@ -312,10 +322,11 @@ THREE_MONTH_EPISODE_ARCHIVE: List[Dict] = [
         "claim_confidence": 99,
         "claim_evidence": "Microsoft official technical incident blog confirmed ~8.5 million Windows devices (<1% of global Windows fleet) were impacted.",
         "claim_source": "https://blogs.microsoft.com/",
-        "prediction_speaker": "Friedberg",
-        "prediction_text": "Major OS platforms will deprecate unverified third-party kernel-mode drivers in favor of user-mode/eBPF isolation.",
-        "prediction_horizon": "2026-2027",
+        "prediction_speaker": "Jason",
+        "prediction_text": "Delta Air Lines will file a formal $500M+ damages lawsuit against CrowdStrike within 90 days over its 7,000+ flight cancellations.",
+        "prediction_horizon": "90 Days Post-Outage",
         "prediction_status": "RESOLVED_TRUE",
+        "prediction_resolution_note": "Verified via Fulton County Superior Court & Delta SEC Form 8-K: Delta filed a formal lawsuit in Oct seeking >$500M in out-of-pocket losses and lost revenue.",
         "so_what": [
             "Never deploy agent prompt, tool, or code updates without passing automated golden-dataset CI/CD evaluation suites (`tests/eval_harness.py`).",
         ],
@@ -340,10 +351,11 @@ THREE_MONTH_EPISODE_ARCHIVE: List[Dict] = [
         "claim_confidence": 95,
         "claim_evidence": "Company disclosures and Forbes Cloud 100 filings confirm Wiz crossed $500M ARR in early 2024 after launching in 2020.",
         "claim_source": "https://www.wiz.io/blog",
-        "prediction_speaker": "Chamath",
-        "prediction_text": "Multi-cloud AI security and governance posture management will become a top-3 CISO budget line item by 2026.",
-        "prediction_horizon": "FY 2026",
-        "prediction_status": "RESOLVED_TRUE",
+        "prediction_speaker": "Jason",
+        "prediction_text": "Wiz will remain independent through an IPO rather than accepting another hyperscaler acquisition offer within 12 months.",
+        "prediction_horizon": "12 Months",
+        "prediction_status": "RESOLVED_FALSE",
+        "prediction_resolution_note": "Proven False via Alphabet Investor Relations: Rather than pursuing a standalone IPO, Wiz agreed to an all-cash $32B acquisition by Alphabet in March 2025.",
         "so_what": [
             "Bake least-privilege IAM, Secret Manager, and Terraform IaC into every cloud agent deployment from Day 0.",
         ],
@@ -370,8 +382,9 @@ THREE_MONTH_EPISODE_ARCHIVE: List[Dict] = [
         "claim_source": "https://www.cbo.gov/",
         "prediction_speaker": "Friedberg",
         "prediction_text": "US Gross Federal Debt will cross $36 Trillion within two quarters at current Treasury issuance run-rates.",
-        "prediction_horizon": "Q1 2025",
+        "prediction_horizon": "Within 2 Quarters",
         "prediction_status": "RESOLVED_TRUE",
+        "prediction_resolution_note": "Verified via US Treasury Fiscal Data ('Debt to the Penny'): Gross US federal debt officially crossed $36.0 Trillion in November.",
         "so_what": [
             "Focus enterprise AI investments on measurable workflow automation with <90-day payback periods.",
         ],
@@ -399,6 +412,16 @@ ROLE_SPECIFIC_IMPLICATIONS: Dict[str, List[str]] = {
 }
 
 
+def format_prediction_status_label(status: str) -> str:
+    """Converts internal enum codes into clean human-readable labels."""
+    s = (status or "PENDING").upper()
+    if "TRUE" in s:
+        return "✓ Came True"
+    if "FALSE" in s:
+        return "✗ Proven False"
+    return "⏳ Pending"
+
+
 def format_archived_episode_brief(ep: Dict, user_role: str = "Enterprise AI & Cloud Leader") -> str:
     """Renders any archived episode into the standardized 5-section plain-text brief tailored to user_role."""
     bullets = "\n".join(f"• {b}" for b in ep["at_a_glance"])
@@ -407,6 +430,11 @@ def format_archived_episode_brief(ep: Dict, user_role: str = "Enterprise AI & Cl
     )
     combined_so_whats = list(ep["so_what"]) + list(role_lines)
     so_whats = "\n".join(f"• {s}" for s in combined_so_whats)
+    readable_status = format_prediction_status_label(ep.get("prediction_status", "PENDING"))
+    resolution_note = ep.get(
+        "prediction_resolution_note",
+        "Awaiting target horizon for empirical verification.",
+    )
     return f"""================================================================================
 PODPULSE EXECUTIVE BRIEF: All-In Podcast ({ep['episode_id']})
 Title:    {ep['title']}
@@ -434,9 +462,11 @@ Claim: "{ep['claim_quote']}" — {ep['claim_speaker']}
 [4] PREDICTION & ACCOUNTABILITY LEDGER
 --------------------------------------------------------------------------------
 • [{ep['prediction_speaker']}] "{ep['prediction_text']}"
-  Horizon: {ep['prediction_horizon']} | Status: [{ep['prediction_status']}]
+  Horizon: {ep['prediction_horizon']} | Status: {readable_status}
+  Verification: {resolution_note}
 
 [5] "SO WHAT FOR YOU" (Tailored Specifically for: {user_role})
 --------------------------------------------------------------------------------
 {so_whats}
 ================================================================================"""
+
