@@ -480,7 +480,34 @@ class LocalDashboardHandler(BaseHTTPRequestHandler):
     """Zero-dependency HTTP handler for local browser preview on 127.0.0.1."""
 
     def do_GET(self) -> None:
+        import json
+
         parsed = urlparse(self.path)
+        if parsed.path == "/api/subscribe":
+            qs = parse_qs(parsed.query)
+            email = qs.get("email", [""])[0]
+            focus = qs.get("focus_area", ["Enterprise AI & Cloud Leader"])[0]
+            res = add_newsletter_subscriber(
+                SubscriberInput(email=email, focus_area=focus)
+            )
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(json.dumps(res.model_dump()).encode("utf-8"))
+            return
+
+        if parsed.path == "/api/unsubscribe":
+            qs = parse_qs(parsed.query)
+            email = qs.get("email", [""])[0]
+            res = remove_newsletter_subscriber(email)
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(json.dumps(res.model_dump()).encode("utf-8"))
+            return
+
         episodes = fetch_archived_episodes()
         ledger = query_prediction_ledger(LedgerQueryInput(limit=15))
         preds = [p.model_dump() for p in ledger.predictions]
@@ -513,6 +540,7 @@ class LocalDashboardHandler(BaseHTTPRequestHandler):
 
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.wfile.write(body.encode("utf-8"))
 
