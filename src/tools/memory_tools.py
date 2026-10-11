@@ -139,44 +139,71 @@ def initialize_memory_database(db_path: str = DATABASE_PATH) -> None:
         )
     """)
 
-    # Seed historical predictions if empty so cross-episode tracking works immediately
+    # Seed 3-month historical archive (13 weekly episodes + predictions) if < 13 episodes exist
+    from src.tools.archive_seed_data import (
+        THREE_MONTH_EPISODE_ARCHIVE,
+        format_archived_episode_brief,
+    )
+
+    cursor.execute("SELECT COUNT(*) FROM episodes")
+    ep_count = cursor.fetchone()[0]
+    if ep_count < len(THREE_MONTH_EPISODE_ARCHIVE):
+        for ep in THREE_MONTH_EPISODE_ARCHIVE:
+            brief_text = format_archived_episode_brief(ep)
+            fact_checks = [
+                {
+                    "claim": ep["claim_quote"],
+                    "speaker": ep["claim_speaker"],
+                    "verdict": ep["claim_verdict"],
+                    "confidence_score": ep["claim_confidence"],
+                    "explanation": ep["claim_evidence"],
+                    "sources": [ep["claim_source"]],
+                }
+            ]
+            debates = [
+                {
+                    "topic": ep["debate_topic"],
+                    "chamath_view": ep["debate_chamath"],
+                    "counter_view": ep["debate_counter"],
+                }
+            ]
+            cursor.execute(
+                """
+                INSERT OR IGNORE INTO episodes
+                (episode_id, title, video_url, summary_text, formatted_brief, fact_checks_json, debates_json, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    ep["episode_id"],
+                    ep["title"],
+                    ep["video_url"],
+                    ep["summary_text"],
+                    brief_text,
+                    json.dumps(fact_checks),
+                    json.dumps(debates),
+                    f"{ep['air_date']}T16:00:00+00:00",
+                ),
+            )
+
     cursor.execute("SELECT COUNT(*) FROM predictions")
-    if cursor.fetchone()[0] == 0:
-        now = datetime.now(timezone.utc).isoformat()
-        seed_predictions = [
-            (
-                "Chamath",
-                "Public SaaS median revenue multiples will compress below 7x ARR before recovering.",
-                "2025-2026",
-                "all-in-ep-142",
-                "RESOLVED_TRUE",
-                now,
-            ),
-            (
-                "Sacks",
-                "The Federal Reserve will pause rate cuts prior to the November election due to sticky CPI.",
-                "Q4 2024",
-                "all-in-ep-185",
-                "PENDING",
-                now,
-            ),
-            (
-                "Friedberg",
-                "Hyperscaler AI capital expenditures across Alphabet, Microsoft, and Meta will surpass $150B annually.",
-                "FY 2025",
-                "all-in-ep-178",
-                "RESOLVED_TRUE",
-                now,
-            ),
-        ]
-        cursor.executemany(
-            """
-            INSERT INTO predictions
-            (speaker_name, prediction_text, target_horizon, episode_id, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            seed_predictions,
-        )
+    if cursor.fetchone()[0] < len(THREE_MONTH_EPISODE_ARCHIVE):
+        cursor.execute("DELETE FROM predictions")
+        for ep in THREE_MONTH_EPISODE_ARCHIVE:
+            cursor.execute(
+                """
+                INSERT INTO predictions
+                (speaker_name, prediction_text, target_horizon, episode_id, status, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    ep["prediction_speaker"],
+                    ep["prediction_text"],
+                    ep["prediction_horizon"],
+                    ep["episode_id"],
+                    ep["prediction_status"],
+                    f"{ep['air_date']}T16:00:00+00:00",
+                ),
+            )
 
     conn.commit()
     conn.close()
