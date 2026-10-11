@@ -1,0 +1,24 @@
+# Google Enterprise Agent Platform (agents-cli) Deployment Manifest
+name: podpulse-intelligence-agent
+version: 1.0.0
+framework: google-adk
+entrypoint: src.agents.orchestrator:PodPulseCoordinator
+runtime:
+  project_id: vakul-100
+  location: us-central1
+  target: cloud-run
+  service_account: podpulse-agent-sa@vakul-100.iam.gserviceaccount.com
+models:
+  fast_tier: gemini-2.5-flash
+  reasoning_tier: gemini-2.5-pro
+security:
+  model_armor_template: projects/vakul-100/locations/us-central1/templates/podpulse-security-template
+  secret_manager_secrets:
+    - podpulse-smtp-credentials
+observability:
+  opentelemetry_enabled: true
+  structured_json_logging: true
+  dlp_pii_redaction: true
+evaluation:
+  dataset: tests/golden_dataset/episodes.json
+  harness: tests/eval_harness.py
