@@ -27,7 +27,7 @@ from src.tools.memory_tools import (
 
 try:
     from fastapi import FastAPI, Form, HTTPException
-    from fastapi.responses import HTMLResponse
+    from fastapi.responses import HTMLResponse, JSONResponse
 
     FASTAPI_AVAILABLE = True
 except ImportError:
