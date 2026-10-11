@@ -150,6 +150,19 @@ def initialize_memory_database(db_path: str = DATABASE_PATH) -> None:
         )
     """)
 
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS email_outbox (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            recipient_email TEXT NOT NULL,
+            sender_identity TEXT NOT NULL,
+            subject TEXT NOT NULL,
+            html_body TEXT NOT NULL,
+            text_body TEXT NOT NULL,
+            delivered INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL
+        )
+    """)
+
     # Seed 3-month historical archive (13 weekly episodes + predictions) if < 13 episodes exist
     from src.tools.archive_seed_data import (
         THREE_MONTH_EPISODE_ARCHIVE,
@@ -403,6 +416,12 @@ def add_newsletter_subscriber(
             dispatch_executive_brief_email,
         )
 
+        import os
+
+        public_base = os.getenv(
+            "PODPULSE_PUBLIC_URL",
+            "https://podpulse-intelligence-agent-286883666859.us-central1.run.app",
+        ).rstrip("/")
         welcome_body = (
             "================================================================================\n"
             "PODPULSE SUBSCRIPTION CONFIRMED\n"
@@ -415,8 +434,8 @@ def add_newsletter_subscriber(
             "and Host Prediction Ledger updates.\n\n"
             "--------------------------------------------------------------------------------\n"
             "HOW TO UNSUBSCRIBE AT ANY TIME:\n"
-            f"• 1-Click Web Unsubscribe: https://podpulse-agent.run.app/unsubscribe?email={clean_email}\n"
-            "• Or use the 'Unsubscribe' button in the top bar of the PodPulse Web Dashboard.\n"
+            f"• 1-Click Web Unsubscribe: {public_base}/unsubscribe?email={clean_email}\n"
+            "• Or visit http://go/podpulse-agent and use the Unsubscribe bar.\n"
             "================================================================================\n"
         )
         dispatch_executive_brief_email(

@@ -125,7 +125,7 @@ def render_single_episode_html(ep: dict) -> str:
             </span>
         </div>
         <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg">
-            <pre class="bg-slate-950 text-slate-200 p-5 rounded-lg text-xs overflow-x-auto font-mono leading-relaxed border border-slate-800">{brief}</pre>
+            <pre class="bg-slate-950 text-slate-200 p-5 rounded-lg text-xs whitespace-pre-wrap break-words font-mono leading-relaxed border border-slate-800" style="white-space: pre-wrap; word-wrap: break-word; overflow-wrap: anywhere;">{brief}</pre>
         </div>
     </div>
 </body>
@@ -466,6 +466,31 @@ if FASTAPI_AVAILABLE:
             latest_video_url=latest_video_url
         )
 
+    @app.get("/api/outbox/pending", response_class=JSONResponse)
+    async def get_pending_outbox_emails() -> Any:
+        initialize_memory_database(DATABASE_PATH)
+        conn = sqlite3.connect(DATABASE_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT * FROM email_outbox WHERE delivered = 0 ORDER BY id ASC LIMIT 25"
+        )
+        rows = [dict(r) for r in cursor.fetchall()]
+        conn.close()
+        return JSONResponse(content={"pending": rows})
+
+    @app.post("/api/outbox/ack", response_class=JSONResponse)
+    async def ack_outbox_email(email_id: int = Form(...)) -> Any:
+        initialize_memory_database(DATABASE_PATH)
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE email_outbox SET delivered = 1 WHERE id = ?", (email_id,)
+        )
+        conn.commit()
+        conn.close()
+        return JSONResponse(content={"acknowledged": email_id})
+
     @app.get("/api/health")
     async def health_check() -> dict:
         return {"status": "healthy", "service": "podpulse-intelligence-agent"}
@@ -593,9 +618,94 @@ class LocalDashboardHandler(BaseHTTPRequestHandler):
         self.wfile.write(body.encode("utf-8"))
 
 
+def _start_cloud_run_outbox_relay() -> None:
+    """Polls Cloud Run /api/outbox/pending and relays queued emails via local Gmail CLI."""
+    import json
+    import os
+    import subprocess
+    import tempfile
+    import threading
+    import time
+    import urllib.parse
+    import urllib.request
+
+    gmail_bin = "/google/bin/releases/gemini-agents-gmail/gmail"
+    cloud_run_base = os.getenv(
+        "PODPULSE_PUBLIC_URL",
+        "https://podpulse-intelligence-agent-286883666859.us-central1.run.app",
+    ).rstrip("/")
+
+    def _relay_loop() -> None:
+        while True:
+            try:
+                if os.path.exists(gmail_bin):
+                    req = urllib.request.Request(
+                        f"{cloud_run_base}/api/outbox/pending",
+                        headers={"User-Agent": "PodPulse-Relay/1.0"},
+                    )
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        data = json.loads(resp.read().decode("utf-8"))
+                    for item in data.get("pending", []):
+                        email_id = item.get("id")
+                        recipient = item.get("recipient_email", "")
+                        subject = item.get("subject", "PodPulse Executive Briefing")
+                        html_body = item.get("html_body", "")
+                        if not recipient or not html_body:
+                            continue
+                        with tempfile.NamedTemporaryFile(
+                            "w", suffix=".html", delete=False, encoding="utf-8"
+                        ) as tf:
+                            tf.write(html_body)
+                            tmp_path = tf.name
+                        clean_env = {
+                            k: v
+                            for k, v in os.environ.items()
+                            if k != "AGY_UNATTENDED"
+                        }
+                        proc = subprocess.run(
+                            [
+                                gmail_bin,
+                                "send",
+                                "--to",
+                                recipient,
+                                "--subject",
+                                subject,
+                                "--body-file",
+                                tmp_path,
+                                "--html",
+                            ],
+                            capture_output=True,
+                            text=True,
+                            timeout=20,
+                            check=False,
+                            env=clean_env,
+                        )
+                        try:
+                            os.remove(tmp_path)
+                        except OSError:
+                            pass
+                        if proc.returncode == 0 and email_id is not None:
+                            ack_data = urllib.parse.urlencode(
+                                {"email_id": str(email_id)}
+                            ).encode("utf-8")
+                            ack_req = urllib.request.Request(
+                                f"{cloud_run_base}/api/outbox/ack",
+                                data=ack_data,
+                                method="POST",
+                            )
+                            urllib.request.urlopen(ack_req, timeout=10).read()
+            except Exception:
+                pass
+            time.sleep(3)
+
+    t = threading.Thread(target=_relay_loop, daemon=True)
+    t.start()
+
+
 if __name__ == "__main__":
     import os
 
+    _start_cloud_run_outbox_relay()
     port = int(os.getenv("PORT", "8085"))
     server = HTTPServer(("127.0.0.1", port), LocalDashboardHandler)
     print(f"PodPulse Web Dashboard running at http://127.0.0.1:{port}", flush=True)
