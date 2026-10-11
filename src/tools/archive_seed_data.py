@@ -379,10 +379,34 @@ THREE_MONTH_EPISODE_ARCHIVE: List[Dict] = [
 ]
 
 
+ROLE_SPECIFIC_IMPLICATIONS: Dict[str, List[str]] = {
+    "Enterprise AI & Cloud Leader": [
+        "Architecture & TCO: Architect multi-accelerator portability (Google TPU + GPU) and hybrid Flash/Pro model routing to cut token inference costs by 70%.",
+        "Governance & Security: Enforce runtime Model Armor prompt-injection screening, Cloud DLP PII redaction, and Human-in-the-Loop approval gates across all production agents.",
+    ],
+    "Tech & Macro Investor": [
+        "Valuation & Multiples: Benchmark public and late-stage software multiples against the reset 6.5x NTM ARR median and watch for $2B-$10B M&A deal band reopening.",
+        "Capital Allocation: Track hyperscaler AI capex ($150B+ run-rate) vs. net inference revenue conversion and sovereign debt refinancing impact on long-end yields.",
+    ],
+    "B2B SaaS Founder / Operator": [
+        "Pricing & Packaging: Shift from seat-based licensing ($/seat/month) to outcome-based agent pricing ($/verified-workflow) before CIO seat consolidation hits renewals.",
+        "GTM & Product Velocity: Embed AI coding assistants with automated golden-dataset CI/CD evaluation suites to double feature shipping velocity without adding headcount.",
+    ],
+    "B2B SaaS Founder / Executive": [
+        "Pricing & Packaging: Shift from seat-based licensing ($/seat/month) to outcome-based agent pricing ($/verified-workflow) before CIO seat consolidation hits renewals.",
+        "GTM & Product Velocity: Embed AI coding assistants with automated golden-dataset CI/CD evaluation suites to double feature shipping velocity without adding headcount.",
+    ],
+}
+
+
 def format_archived_episode_brief(ep: Dict, user_role: str = "Enterprise AI & Cloud Leader") -> str:
-    """Renders any archived episode into the standardized 5-section plain-text brief."""
+    """Renders any archived episode into the standardized 5-section plain-text brief tailored to user_role."""
     bullets = "\n".join(f"• {b}" for b in ep["at_a_glance"])
-    so_whats = "\n".join(f"• {s}" for s in ep["so_what"])
+    role_lines = ROLE_SPECIFIC_IMPLICATIONS.get(
+        user_role, ROLE_SPECIFIC_IMPLICATIONS["Enterprise AI & Cloud Leader"]
+    )
+    combined_so_whats = list(ep["so_what"]) + list(role_lines)
+    so_whats = "\n".join(f"• {s}" for s in combined_so_whats)
     return f"""================================================================================
 PODPULSE EXECUTIVE BRIEF: All-In Podcast ({ep['episode_id']})
 Title:    {ep['title']}
@@ -412,7 +436,7 @@ Claim: "{ep['claim_quote']}" — {ep['claim_speaker']}
 • [{ep['prediction_speaker']}] "{ep['prediction_text']}"
   Horizon: {ep['prediction_horizon']} | Status: [{ep['prediction_status']}]
 
-[5] "SO WHAT FOR YOU" (Tailored for: {user_role})
+[5] "SO WHAT FOR YOU" (Tailored Specifically for: {user_role})
 --------------------------------------------------------------------------------
 {so_whats}
 ================================================================================"""

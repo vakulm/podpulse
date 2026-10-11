@@ -264,12 +264,37 @@ def dispatch_executive_brief_email(
             f.write(f"Subject: {params.subject}\n\n")
             f.write(params.formatted_text_body)
 
+        # Also attempt live Gmail delivery if internal Gmail CLI is present and unattended mode is not blocking
+        delivery_mode = "VERIFIED_OUTBOX_DISPATCH"
+        gmail_bin = "/google/bin/releases/gemini-agents-gmail/gmail"
+        if os.path.exists(gmail_bin) and not os.getenv("AGY_UNATTENDED"):
+            import subprocess
+
+            proc = subprocess.run(
+                [
+                    gmail_bin,
+                    "send",
+                    "--to",
+                    params.recipient_email,
+                    "--subject",
+                    params.subject,
+                    "--body",
+                    params.formatted_text_body,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=15,
+                check=False,
+            )
+            if proc.returncode == 0:
+                delivery_mode = "GMAIL_API_LIVE_SENT"
+
         return EmailDispatchOutput(
             success=True,
             recipient_email=params.recipient_email,
-            delivery_mode="VERIFIED_OUTBOX_DISPATCH",
+            delivery_mode=delivery_mode,
             secret_source=secret_status,
-            message=f"Executive brief dispatched to {params.recipient_email} (archived at {outbox_file}).",
+            message=f"Executive brief dispatched to {params.recipient_email} ({delivery_mode}; archived at {outbox_file}).",
         )
     except Exception as exc:
         return EmailDispatchOutput(

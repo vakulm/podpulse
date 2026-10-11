@@ -576,16 +576,26 @@ async def check_and_ingest_weekly_release(
 
     dispatched_to: List[str] = []
     if pipeline_res.success and subscribers:
+        from src.tools.archive_seed_data import ROLE_SPECIFIC_IMPLICATIONS
+
         for sub in subscribers:
             sub_email = sub["email"]
+            sub_role = sub.get("focus_area") or "Enterprise AI & Cloud Leader"
+            role_bullets = ROLE_SPECIFIC_IMPLICATIONS.get(
+                sub_role,
+                ROLE_SPECIFIC_IMPLICATIONS["Enterprise AI & Cloud Leader"],
+            )
+            role_block = "\n".join(f"• {b}" for b in role_bullets)
             body_with_unsub = (
                 f"{pipeline_res.formatted_brief}\n\n"
+                f"[ROLE-SPECIFIC ACTION PLAN FOR: {sub_role}]\n"
+                f"{role_block}\n\n"
                 f"1-Click Unsubscribe: https://podpulse-agent.run.app/unsubscribe?email={sub_email}\n"
             )
             send_res = dispatch_executive_brief_email(
                 EmailDispatchInput(
                     recipient_email=sub_email,
-                    subject=f"[PodPulse Weekly Brief] All-In Podcast ({pipeline_res.episode_id})",
+                    subject=f"[PodPulse Weekly Brief — {sub_role}] All-In Podcast ({pipeline_res.episode_id})",
                     formatted_text_body=body_with_unsub,
                     human_approved=True,
                 )
