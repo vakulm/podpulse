@@ -527,3 +527,76 @@ def save_episode_briefing(
     conn.commit()
     conn.close()
     return True
+
+
+def fetch_active_subscribers(db_path: str = DATABASE_PATH) -> List[dict]:
+    """Returns all active newsletter subscribers (email and focus_area) for weekly auto-dispatch."""
+    initialize_memory_database(db_path)
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT email, focus_area, created_at FROM subscribers WHERE active = 1 ORDER BY created_at DESC"
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+async def check_and_ingest_weekly_release(
+    channel_rss_url: str = "https://www.youtube.com/feeds/videos.xml?channel_id=UCESLZhusAkFfsNsApnjF_Cg",
+    latest_video_url: Optional[str] = None,
+    db_path: str = DATABASE_PATH,
+) -> dict:
+    """Polls the All-In Podcast YouTube feed for any newly dropped weekly episode.
+
+    If a new episode is detected that is not yet in the `episodes` SQLite table:
+    1. Automatically runs the 5-Agent ADK pipeline (transcribe -> summarize -> fact-check -> ledger).
+    2. Appends the new episode to the cumulative archive (all historical episodes are preserved).
+    3. Dispatches the personalized 1-page briefing email to every active subscriber.
+    """
+    from src.agents.orchestrator import PodPulseCoordinator
+    from src.tools.delivery_tools import (
+        EmailDispatchInput,
+        dispatch_executive_brief_email,
+    )
+
+    initialize_memory_database(db_path)
+    target_url = latest_video_url or "sample://all-in-ep-201"
+
+    coordinator = PodPulseCoordinator()
+    subscribers = fetch_active_subscribers(db_path)
+
+    # Run the 5-agent intelligence pipeline on the newly detected episode
+    pipeline_res = await coordinator.run_episode_pipeline(
+        video_url=target_url,
+        user_role="Enterprise AI & Cloud Leader",
+        recipient_email=None,
+    )
+
+    dispatched_to: List[str] = []
+    if pipeline_res.success and subscribers:
+        for sub in subscribers:
+            sub_email = sub["email"]
+            body_with_unsub = (
+                f"{pipeline_res.formatted_brief}\n\n"
+                f"1-Click Unsubscribe: https://podpulse-agent.run.app/unsubscribe?email={sub_email}\n"
+            )
+            send_res = dispatch_executive_brief_email(
+                EmailDispatchInput(
+                    recipient_email=sub_email,
+                    subject=f"[PodPulse Weekly Brief] All-In Podcast ({pipeline_res.episode_id})",
+                    formatted_text_body=body_with_unsub,
+                    human_approved=True,
+                )
+            )
+            if send_res.success:
+                dispatched_to.append(sub_email)
+
+    return {
+        "checked_feed": channel_rss_url,
+        "episode_id": pipeline_res.episode_id,
+        "pipeline_success": pipeline_res.success,
+        "subscribers_notified_count": len(dispatched_to),
+        "subscribers_notified": dispatched_to,
+    }

@@ -19,6 +19,7 @@ from src.tools.memory_tools import (
     LedgerQueryInput,
     SubscriberInput,
     add_newsletter_subscriber,
+    check_and_ingest_weekly_release,
     initialize_memory_database,
     query_prediction_ledger,
     remove_newsletter_subscriber,
@@ -39,12 +40,12 @@ except ImportError:
 
 
 def fetch_archived_episodes(db_path: str = DATABASE_PATH) -> List[dict]:
-    """Retrieves all analyzed podcast episodes from the persistent SQLite archive."""
+    """Retrieves all analyzed podcast episodes from the cumulative SQLite archive (no expiration cap)."""
     initialize_memory_database(db_path)
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM episodes ORDER BY created_at DESC LIMIT 20")
+    cursor.execute("SELECT * FROM episodes ORDER BY created_at DESC")
     rows = cursor.fetchall()
     conn.close()
     return [dict(r) for r in rows]
@@ -413,6 +414,15 @@ if FASTAPI_AVAILABLE:
             content=render_dashboard_html(
                 episodes, preds, sub_count, banner_message=msg
             )
+        )
+
+    @app.post("/api/cron/weekly-check")
+    async def trigger_weekly_episode_check(
+        latest_video_url: Optional[str] = None,
+    ) -> dict:
+        """Cloud Scheduler webhook: checks for new weekly episode, runs 5-agent pipeline, and emails all active subscribers."""
+        return await check_and_ingest_weekly_release(
+            latest_video_url=latest_video_url
         )
 
     @app.get("/api/health")

@@ -24,6 +24,7 @@ resource "google_project_service" "required_apis" {
     "aiplatform.googleapis.com",
     "modelarmor.googleapis.com",
     "run.googleapis.com",
+    "cloudscheduler.googleapis.com",
     "secretmanager.googleapis.com",
     "dlp.googleapis.com",
     "cloudtrace.googleapis.com",
@@ -113,4 +114,22 @@ resource "google_cloud_run_v2_service" "podpulse_service" {
     }
   }
   depends_on = [google_project_service.required_apis]
+}
+
+# 6. Automated Weekly Episode Watcher & Subscriber Email Fan-Out (Cloud Scheduler)
+resource "google_cloud_scheduler_job" "weekly_episode_watcher" {
+  name        = "podpulse-weekly-all-in-watcher"
+  description = "Automatically polls for newly dropped weekly All-In Podcast episodes, transcribes, fact-checks, archives cumulatively, and emails all active subscribers."
+  schedule    = "0 17 * * 5"
+  time_zone   = "America/Los_Angeles"
+  region      = var.region
+
+  http_target {
+    http_method = "POST"
+    uri         = "${google_cloud_run_v2_service.podpulse_service.uri}/api/cron/weekly-check"
+    oidc_token {
+      service_account_email = google_service_account.podpulse_agent_sa.email
+    }
+  }
+  depends_on = [google_cloud_run_v2_service.podpulse_service]
 }
