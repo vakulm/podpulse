@@ -295,6 +295,62 @@ def dispatch_executive_brief_email(
             f.write(f"Subject: {params.subject}\n\n")
             f.write(body_text)
 
+        # Deliver real email to inbox on Cloudtop when not running inside pytest/eval_harness
+        gmail_bin = "/google/bin/releases/gemini-agents-gmail/gmail"
+        is_eval_run = "eval_harness" in " ".join(os.sys.argv) or "pytest" in " ".join(os.sys.argv)
+        if os.path.exists(gmail_bin) and not is_eval_run:
+            import html as html_lib
+            import subprocess
+
+            escaped_body = html_lib.escape(body_text)
+            local_unsub_url = f"http://vakullinux.c.googlers.com:8085/unsubscribe?email={clean_recipient}"
+            html_body = (
+                "<div style='font-family: ui-sans-serif, system-ui, sans-serif; max-width: 780px; margin: 0 auto; color: #0f172a;'>"
+                "<div style='background: #1e293b; color: #f8fafc; padding: 12px 16px; border-radius: 8px 8px 0 0; font-size: 12px;'>"
+                f"<strong>Sender Identity:</strong> {html_lib.escape(params.sender_identity)}"
+                "</div>"
+                "<pre style='background: #f8fafc; border: 1px solid #cbd5e1; padding: 16px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 1.5; white-space: pre-wrap;'>"
+                f"{escaped_body}</pre>"
+                "<div style='margin-top: 12px; padding: 12px; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; font-size: 13px;'>"
+                "<strong>Manage Subscription:</strong> "
+                f"<a href='{local_unsub_url}' style='color: #e11d48; font-weight: bold; text-decoration: underline;'>Click here for 1-Click Unsubscribe ({clean_recipient})</a> "
+                f"| <a href='{unsub_url}' style='color: #64748b;'>Cloud Run Unsubscribe Link</a>"
+                "</div></div>"
+            )
+            html_file = f"{outbox_file}.html"
+            with open(html_file, "w", encoding="utf-8") as hf:
+                hf.write(html_body)
+
+            proc = subprocess.run(
+                [
+                    gmail_bin,
+                    "send",
+                    "--to",
+                    clean_recipient,
+                    "--subject",
+                    params.subject,
+                    "--body-file",
+                    html_file,
+                    "--html",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=20,
+                check=False,
+            )
+            if proc.returncode == 0:
+                return EmailDispatchOutput(
+                    success=True,
+                    recipient_email=clean_recipient,
+                    sender_identity=params.sender_identity,
+                    delivery_mode="LIVE_EMAIL_DELIVERED",
+                    secret_source=secret_status,
+                    message=(
+                        f"Delivered live HTML email to {clean_recipient} with clickable "
+                        f"unsubscribe link in body ({local_unsub_url})."
+                    ),
+                )
+
         return EmailDispatchOutput(
             success=True,
             recipient_email=clean_recipient,

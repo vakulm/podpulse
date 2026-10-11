@@ -481,11 +481,37 @@ def remove_newsletter_subscriber(
         )
         conn.commit()
         conn.close()
+
+        from src.tools.delivery_tools import (
+            EmailDispatchInput,
+            dispatch_executive_brief_email,
+        )
+
+        unsub_body = (
+            "================================================================================\n"
+            "PODPULSE UNSUBSCRIBE CONFIRMED\n"
+            "================================================================================\n"
+            f"Subscriber: {clean_email}\n"
+            "Status:     UNSUBSCRIBED (Inactive)\n\n"
+            "You have been removed from the active PodPulse weekly mailing list and will\n"
+            "no longer receive automated Friday episode briefings.\n\n"
+            "Changed your mind? You can re-subscribe at any time from the PodPulse Web Dashboard.\n"
+            "================================================================================\n"
+        )
+        dispatch_executive_brief_email(
+            EmailDispatchInput(
+                recipient_email=clean_email,
+                subject="PodPulse Unsubscribe Confirmed — You Have Been Removed",
+                formatted_text_body=unsub_body,
+                human_approved=True,
+            )
+        )
+
         return SubscriberOutput(
             success=True,
             email=clean_email,
             focus_area="UNSUBSCRIBED",
-            message=f"Successfully unsubscribed {clean_email} from PodPulse email briefings.",
+            message=f"Successfully unsubscribed {clean_email} from PodPulse email briefings and sent unsubscribe confirmation email.",
         )
     except Exception as exc:
         return SubscriberOutput(

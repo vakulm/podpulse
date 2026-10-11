@@ -328,10 +328,23 @@ def render_dashboard_html(
 # =====================================================================
 
 if FASTAPI_AVAILABLE:
+    from fastapi.middleware.cors import CORSMiddleware
+
     app = FastAPI(
         title="PodPulse Intelligence & Fact-Checking Engine",
         description="Multi-Agent Podcast Summarizer, Grounded Fact-Checker, and Accountability Ledger",
         version="1.0.0",
+    )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_Methods=["*"],
+        allow_headers=["*"],
+    ) if False else app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     @app.get("/", response_class=HTMLResponse)
@@ -372,6 +385,16 @@ if FASTAPI_AVAILABLE:
             )
         )
 
+    @app.get("/api/subscribe", response_class=JSONResponse)
+    async def handle_api_subscribe(
+        email: str = "",
+        focus_area: str = "Enterprise AI & Cloud Leader",
+    ) -> Any:
+        res = add_newsletter_subscriber(
+            SubscriberInput(email=email, focus_area=focus_area)
+        )
+        return JSONResponse(content=res.model_dump())
+
     @app.post("/unsubscribe", response_class=HTMLResponse)
     async def handle_web_unsubscribe(email: str = Form(...)) -> Any:
         res = remove_newsletter_subscriber(email)
@@ -385,6 +408,11 @@ if FASTAPI_AVAILABLE:
                 episodes, preds, sub_count, banner_message=msg
             )
         )
+
+    @app.get("/api/unsubscribe", response_class=JSONResponse)
+    async def handle_api_unsubscribe(email: str = "") -> Any:
+        res = remove_newsletter_subscriber(email)
+        return JSONResponse(content=res.model_dump())
 
     @app.get("/unsubscribe", response_class=HTMLResponse)
     async def handle_one_click_unsubscribe(email: str = "") -> Any:
